@@ -6,7 +6,7 @@ output:
     theme: spacelab
 ---
 
-<img src="../figs/letters.png" align = "middle"> 
+<img src="http://andrewpbray.github.io/math-243/assets/figs/letters.png" align = "middle"> 
 
 ### Ransom notes keep falling
 
