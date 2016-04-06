@@ -1,0 +1,103 @@
+---
+title: "Lab 7"
+author: "Laura Dallago"
+date: "4/5/2016"
+output: html_document
+---
+
+###Building a boosted tree
+
+```{r importData, echo=F, message=F}
+letters <- read.csv("letters.csv", header=FALSE)
+```
+
+
+```{r trainingSet, echo=F, message=F}
+set.seed(1)
+row <- sample(1:nrow(letters), nrow(letters) * .75)
+
+train <- letters[row,]
+test <- letters[-row,]
+```
+
+```{r boostedTree, echo=F, message=F}
+library(gbm)
+boost_1 <- gbm(V1~., data=train, distribution="multinomial", shrinkage = .1, interaction.depth = 1, n.trees=50 )
+summary(boost_1)
+```
+
+The The mean value of the squared vertical distance times the horizontal distance for each “on” pixel is found to be most important. 
+
+###Assessing predictions
+
+```{r predict, echo=F, message=F}
+predict1 <- predict(boost_1, newdata=test, n.trees=50, type="response")
+predicted1 <- LETTERS[apply(predict1, 1, which.max)]
+actual <- test[,1]
+```
+
+a.
+```{r confusionMatrix, echo=F, message=F}
+matrix1 <- table(predicted1, actual)
+matrix1
+```
+
+b.
+```{r misclassificationRate, echo=F, message=F}
+correct1 <- sum(diag(matrix1))
+misrate1 <- 1-(correct1/5000)
+```
+The misclassification rate is `r misrate`.
+
+c.
+```{r mostDifficult, echo=F, message=F}
+row_totals1 <- colSums(matrix1)
+row_correct1 <- diag(matrix1)
+rates1 <- 1-(row_correct1/row_totals1)
+mostDifficult <- which.max(rates1)
+```
+The most difficult letter to classify is `r LETTERS[mostDifficult]`.
+
+d. Letter pairs
+
+The letter pairs with the highest values in the confusion matrix are E & X, C % E, G & E, O & H, and D & B.
+
+
+###Slow the learning
+
+```{r slowLearner, echo=F, message=F}
+boost_2 <- gbm(V1~., data=train, distribution="multinomial", shrinkage = .01, interaction.depth = 1, n.trees=150 )
+
+predict2 <- predict(boost_2, newdata=test, n.trees=150, type="response")
+predicted2 <- LETTERS[apply(predict2, 1, which.max)]
+
+matrix2 <- table(predicted2, actual)
+matrix2
+
+correct2 <- sum(diag(matrix2))
+misrate2 <- 1-(correct2/5000)
+```
+
+Using a shrinkage value of .01 and B as 150, I get a misclassification rate of `r misrate2`, which is larger than my previous rate. 
+
+E & X, D & B, H & O, G & E, and C % E remain about the same. L & A, P & F, V & Y, and S & B get worse. None get particularly better.
+
+
+###Communities and Crime
+
+```{r crimeData, echo=F, message=F}
+crime_train <- read.csv("crime-train.csv")
+crime_test <- read.csv("crime-test.csv")
+```
+
+```{r crimeBoost, echo=F, message=F}
+boost_3 <- gbm(ViolentCrimesPerPop ~ pctUrban + medIncome + PctPopUnderPov + PctFam2Par + PctPersDenseHous + HousVacant + PctVacantBoarded + NumStreet + PopDens + racepctblack + PctNotHSGrad, data=crime_train, distribution="gaussian", shrinkage = .1, interaction.depth = 1, n.trees=50 )
+
+predict3 <- predict(boost_3, newdata=crime_test, n.trees=50, type="response")
+
+MSE <- mean((predict3 - crime_test$ViolentCrimesPerPop)^2)
+```
+
+My new MSE is `r MSE`, which is very similar the lowest MSE's from last week's lab which were obtained using the bagging method.
+
+
